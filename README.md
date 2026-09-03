@@ -79,6 +79,3 @@ pip install -r requirements.txt
 4. The sentence is spoken aloud.
 5. Optional: show reverse mode — type a sentence, see it broken into sign words.
 
-Keep a backup screen-recorded video of a successful run in case the live
-webcam demo has issues on stage (lighting, wifi, etc.) — this is standard
-hackathon practice and judges expect it.
