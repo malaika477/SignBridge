@@ -12,7 +12,7 @@
  */
 import { useRef, useEffect, useState, useCallback } from 'react'
 
-const WS_URL = 'ws://localhost:8001/ws/recognize'
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8001/ws/recognize'
 const RECONNECT_DELAY_MS = 3000
 
 export function useSignSocket() {

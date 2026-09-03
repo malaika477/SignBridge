@@ -45,9 +45,13 @@ app = FastAPI(title="SignBridge API")
 # Thread pool for blocking LLM calls (prevents event loop freeze)
 _executor = ThreadPoolExecutor(max_workers=16)
 
+# CORS: allow localhost for dev, plus any configured origins (e.g. Vercel)
+_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+ALLOWED_ORIGINS = [o.strip() for o in _origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
