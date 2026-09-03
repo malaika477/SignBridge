@@ -1,0 +1,52 @@
+# ================================================
+# SignBridge .gitignore
+# ================================================
+
+# --- Secrets & credentials (NEVER commit) ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.class
+*.so
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# --- Node / Frontend ---
+node_modules/
+**/node_modules/
+frontend/dist/
+.npm
+
+# --- IDE & editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Trained models (too large for GitHub) ---
+*.pkl
+
+# --- Debug screenshots ---
+screenshot_*.png
+
+# --- Data (optional - uncomment if CSV is too large) ---
+# data/*.csv
+
+# --- Misc ---
+*.log
+.cache/
