@@ -12,22 +12,7 @@
  */
 import { useRef, useEffect, useState, useCallback } from 'react'
 
-// WebSocket URL: explicit override via env var, otherwise same-origin
-// when the frontend is served by the backend (single-port deploy, e.g.
-// Replit), falling back to the local dev backend.
-function resolveWsUrl() {
-  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL
-  const { protocol, hostname, port } = window.location
-  const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1'
-  if (!isLocalDev && !port) {
-    // Deployed on the same origin as the backend (e.g. https://xxx.replit.app)
-    const wsProto = protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${wsProto}//${hostname}/ws/recognize`
-  }
-  return 'ws://localhost:8001/ws/recognize'
-}
-
-const WS_URL = resolveWsUrl()
+const WS_URL = 'ws://localhost:8001/ws/recognize'
 const RECONNECT_DELAY_MS = 3000
 
 export function useSignSocket() {

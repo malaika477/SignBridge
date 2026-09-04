@@ -25,8 +25,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 # Make src/ importable (for llm_sentence.py)
@@ -47,13 +45,9 @@ app = FastAPI(title="SignBridge API")
 # Thread pool for blocking LLM calls (prevents event loop freeze)
 _executor = ThreadPoolExecutor(max_workers=16)
 
-# CORS: allow localhost for dev, plus any configured origins (e.g. Vercel)
-_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
-ALLOWED_ORIGINS = [o.strip() for o in _origins.split(",") if o.strip()]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -181,25 +175,3 @@ async def websocket_recognize(ws: WebSocket):
             await ws.send_json({"type": "error", "message": str(e)})
         except Exception:
             pass
-
-
-# --- Static frontend serving (single-port deployments, e.g. Replit) ---
-# Serves the built React app from frontend/dist when it exists.
-# Registered last so /api and /ws routes take precedence.
-
-FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-
-if os.path.isdir(FRONTEND_DIST):
-    _assets_dir = os.path.join(FRONTEND_DIST, "assets")
-    if os.path.isdir(_assets_dir):
-        app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
-
-    @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        # Serve a real file if it exists (favicon etc.), otherwise index.html
-        candidate = os.path.normpath(os.path.join(FRONTEND_DIST, full_path))
-        if (full_path
-                and candidate.startswith(FRONTEND_DIST)
-                and os.path.isfile(candidate)):
-            return FileResponse(candidate)
-        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
