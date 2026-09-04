@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react'
 import { useHandTracking } from '../hooks/useHandTracking'
 
 export default function WebcamView({ onLandmarks }) {
-  const { canvasRef, cameraError, handsDetected, setOnResults } = useHandTracking()
+  const { canvasRef, cameraError, handsDetected, status, setOnResults } = useHandTracking()
   const onLandmarksRef = useRef(onLandmarks)
   onLandmarksRef.current = onLandmarks
 
@@ -35,10 +35,21 @@ export default function WebcamView({ onLandmarks }) {
     )
   }
 
+  const statusMessages = {
+    'loading-mediapipe': 'Loading hand tracking...',
+    'requesting-camera': 'Waiting for camera permission...',
+    'starting': 'Starting camera...',
+  }
+
   return (
     <div className={`webcam-view ${handsDetected ? 'hands-detected' : ''}`}>
       <canvas ref={canvasRef} className="webcam-canvas" />
-      {!handsDetected && (
+      {!handsDetected && status !== 'running' && statusMessages[status] && (
+        <div className="no-hands-overlay">
+          <p>{statusMessages[status]}</p>
+        </div>
+      )}
+      {!handsDetected && status === 'running' && (
         <div className="no-hands-overlay">
           <p>Show your hands to the camera</p>
         </div>

@@ -1,0 +1,11 @@
+run = "bash start.sh"
+entrypoint = "server/app.py"
+modules = ["python-3.11", "nodejs-20"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["bash", "start.sh"]
+deploymentTarget = "autoscale"
+build = ["bash", "build.sh"]

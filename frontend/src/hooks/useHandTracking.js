@@ -50,9 +50,17 @@ export function useHandTracking() {
   const animFrameRef = useRef(null)
   const onResultsCb = useRef(null)
   const pollRef = useRef(null)
+  const statusRef = useRef('loading-mediapipe')
 
   const [cameraError, setCameraError] = useState(null)
   const [handsDetected, setHandsDetected] = useState(false)
+  // 'loading-mediapipe' | 'requesting-camera' | 'starting' | 'running' | 'error'
+  const [status, setStatus] = useState('loading-mediapipe')
+
+  function updateStatus(next) {
+    statusRef.current = next
+    setStatus(next)
+  }
 
   const setOnResults = useCallback((cb) => {
     onResultsCb.current = cb
@@ -61,7 +69,17 @@ export function useHandTracking() {
   useEffect(() => {
     let cancelled = false
 
-    // Poll for MediaPipe CDN to finish loading
+    // Poll for MediaPipe CDN to finish loading (timeout after 20s)
+    const mpTimeout = setTimeout(() => {
+      if (!cancelled && statusRef.current === 'loading-mediapipe') {
+        setCameraError('Could not load hand-tracking library. Check your internet connection and refresh.')
+        updateStatus('error')
+      }
+    }, 20000)
+
+    // Camera permission timeout — some browsers silently suppress the prompt
+    let camTimeout = null
+
     function waitForMediaPipe() {
       if (cancelled) return
       if (typeof window.Hands === 'function' &&
@@ -75,13 +93,23 @@ export function useHandTracking() {
 
     async function initCamera() {
       // 1. Get camera permission
+      updateStatus('requesting-camera')
+      camTimeout = setTimeout(() => {
+        if (!cancelled && statusRef.current === 'requesting-camera') {
+          setCameraError('Camera permission request timed out. Your browser may be blocking the prompt — check the camera icon in the address bar, or use Chrome/Edge and allow camera for this site.')
+          updateStatus('error')
+        }
+      }, 15000)
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 640, height: 480, facingMode: 'user' },
         })
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+        clearTimeout(camTimeout)
         streamRef.current = stream
       } catch (err) {
+        clearTimeout(camTimeout)
         if (!cancelled) {
           if (err.name === 'NotAllowedError') {
             setCameraError('Camera permission denied. Click the camera icon in your address bar and allow access.')
@@ -90,6 +118,7 @@ export function useHandTracking() {
           } else {
             setCameraError(`Camera error: ${err.message}`)
           }
+          updateStatus('error')
         }
         return
       }
@@ -105,6 +134,7 @@ export function useHandTracking() {
 
       await video.play()
       if (cancelled) return
+      updateStatus('starting')
 
       // 3. Initialize MediaPipe Hands
       const hands = new window.Hands({
@@ -122,6 +152,8 @@ export function useHandTracking() {
       hands.onResults((results) => {
         const canvas = canvasRef.current
         if (!canvas) return
+
+        if (statusRef.current !== 'running') updateStatus('running')
 
         const ctx = canvas.getContext('2d')
         canvas.width = video.videoWidth || 640
@@ -179,6 +211,8 @@ export function useHandTracking() {
 
     return () => {
       cancelled = true
+      clearTimeout(mpTimeout)
+      if (camTimeout) clearTimeout(camTimeout)
       if (pollRef.current) clearTimeout(pollRef.current)
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop())
@@ -186,5 +220,5 @@ export function useHandTracking() {
     }
   }, [])
 
-  return { canvasRef, cameraError, handsDetected, setOnResults }
+  return { canvasRef, cameraError, handsDetected, status, setOnResults }
 }
