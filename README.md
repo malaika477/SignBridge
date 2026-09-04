@@ -1,81 +1,158 @@
-# SignBridge — Sign Language Interpreter
+# SignBridge — AI Sign Language Interpreter
 
-Real-time sign language → spoken sentence interpreter, built for the
-Alibaba Cloud AI Hackathon Pakistan 2026.
+A real-time, two-way AI sign language interpreter, built for the **Alibaba Cloud AI Hackathon Pakistan 2026** (Theme: *AI for Pakistan's Future*).
 
-## How it works (pipeline)
+SignBridge lets a Deaf user and a hearing person communicate directly, without a human interpreter present — using just a webcam and microphone.
+
+---
+
+## The Problem
+
+Millions of Deaf and hard-of-hearing people in Pakistan face a daily communication barrier. Certified Pakistan Sign Language (PSL) interpreters are scarce and rarely available in the moments they're needed most — hospitals, schools, government offices, or everyday conversation. Without an interpreter present, communication breaks down in both directions.
+
+## The Solution
+
+SignBridge works two ways:
+
+- **Sign → Text (Forward Mode):** A Deaf user signs in front of a webcam. SignBridge recognizes the signs in real time, and an AI language model composes them into a natural, fluent spoken sentence.
+- **Text / Speech → Sign Words (Reverse Mode):** A hearing person types or speaks a sentence. An AI language model reasons about its meaning and maps it onto SignBridge's known sign vocabulary, then plays each matching sign as a flashcard in sequence for the Deaf user to read.
+
+**Example — Forward Mode:**
+> Signed: `HELLO → DEAF → SICK → HELP → DOCTOR`
+> SignBridge speaks: *"Hello, I am Deaf and I am sick. I need help, please call a doctor."*
+
+**Example — Reverse Mode:**
+> Typed: *"I am feeling unwell and need medical attention"*
+> SignBridge plays the flashcard sequence: `SICK → DOCTOR → HELP → PLEASE`
+
+Note that the sentence above uses none of the exact vocabulary words — the AI is reasoning about meaning, not just matching keywords.
+
+---
+
+## How It Works
 
 ```
+Forward Mode:
 Webcam → MediaPipe Hands → Landmark features → Classifier → Recognized word
        → (buffer of recent words) → LLM prompt → Natural sentence → Text-to-Speech
+
+Reverse Mode:
+Typed / spoken sentence → Speech-to-text (if spoken) → LLM prompt
+       → Sequence of known sign words → Flashcard playback
 ```
 
-## Folder structure
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Hand tracking | MediaPipe Hands (21 landmarks per hand, two hands supported) |
+| Sign classification | Random Forest classifier (scikit-learn), ~94% validation accuracy |
+| Language model | Groq (Llama 3) — composes sentences and reasons about sign-word mapping |
+| Text-to-speech | pyttsx3 |
+| Speech-to-text | SpeechRecognition, with typed-input fallback |
+| Backend | FastAPI + WebSockets (real-time recognition stream) |
+| Frontend | React + Vite |
+| Core scripting / prototyping | Python, OpenCV |
+
+---
+
+## Project Structure
 
 ```
 signbridge/
-├── data/                   # Recorded training samples (CSV of hand landmarks + labels)
-│   └── landmarks.csv
-├── models/                 # Saved trained classifier
-│   └── sign_classifier.pkl
-├── src/
-│   ├── data_collection.py  # Record your own signs via webcam to build a dataset
-│   ├── train_classifier.py # Train a simple classifier on collected landmarks
-│   ├── realtime_recognize.py # Live webcam demo: detects signs in real time
-│   ├── llm_sentence.py     # Turns recognized words into a natural sentence (LLM prompt)
-│   ├── tts.py               # Converts final sentence to speech
-│   └── main.py              # Ties everything together for the live demo
+├── data/
+│   └── landmarks.csv          # Recorded training samples (hand landmarks + labels)
+├── frontend/                  # React web app (browser UI for both modes)
+│   ├── src/
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+├── server/                    # FastAPI backend (WebSocket-based recognition service)
+│   ├── app.py
+│   └── classifier.py
+├── src/                       # Core Python pipeline (standalone / prototyping scripts)
+│   ├── data_collection.py     # Record signs via webcam to build the dataset
+│   ├── train_classifier.py    # Train the classifier on collected landmarks
+│   ├── realtime_recognize.py  # Live webcam sign recognition
+│   ├── llm_sentence.py        # LLM: words → sentence, and sentence → sign words
+│   ├── tts.py                 # Text-to-speech output
+│   ├── reverse_mode.py        # Reverse mode: speech/text → sign flashcard sequence
+│   └── main.py                # Full forward-mode pipeline, end to end
+├── .env.example                # Template for required environment variables
 ├── requirements.txt
 └── README.md
 ```
 
-## Team roles (suggested)
-
-- **Teammate A (you) — Prompt & Language Layer**
-  Owns `llm_sentence.py` and `tts.py`. This is where the "smart" part lives:
-  turning raw recognized words into fluent, natural sentences.
-
-- **Teammate B — Vision & Data Layer**
-  Owns `data_collection.py`, `train_classifier.py`, and `realtime_recognize.py`.
-  Responsible for recording sign samples, training the classifier, and getting
-  real-time hand tracking working smoothly.
-
-Both of you should be able to run `main.py` together once your pieces are done.
+---
 
 ## Setup
+
+### Python environment (core pipeline)
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Step-by-step build order
+Copy `.env.example` to `.env` and add your own LLM API key:
 
-1. **Collect data** — run `data_collection.py`, pick ~15-20 words
-   (hello, thank you, help, water, pain, yes, no, doctor, home, food,
-   stop, please, sorry, good, bad, more, again, name, understand, wait).
-   Record each sign 15-20 times from slightly different angles/speeds.
+```
+LLM_API_KEY=your_key_here
+```
 
-2. **Train the classifier** — run `train_classifier.py`. This builds a
-   small model that maps hand landmark positions to a word label.
+### Backend (FastAPI server)
 
-3. **Test real-time recognition** — run `realtime_recognize.py` to confirm
-   the webcam correctly identifies signs live.
+```bash
+cd server
+uvicorn app:app --reload --port 8001
+```
 
-4. **Wire in the LLM layer** — fill in your API key in `llm_sentence.py`
-   (use Alibaba Cloud Model Studio / Qwen API if you got hackathon credits,
-   otherwise any LLM API works for prototyping).
+### Frontend (React app)
 
-5. **Add text-to-speech** — `tts.py` uses a free TTS library by default so
-   you can demo without any paid API.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-6. **Run the full demo** — `main.py` combines everything into the live
-   webcam → sentence → speech pipeline.
+The frontend runs on `http://localhost:5173` and connects to the backend at `ws://localhost:8001`.
 
-## Demo script (suggested)
+---
 
-1. Sign: "help" → "doctor" → "pain"
-2. App recognizes words in real time (shown on screen as they're detected)
-3. After a short pause, the LLM turns it into: *"I need a doctor, I am in pain."*
-4. The sentence is spoken aloud.
-5. Optional: show reverse mode — type a sentence, see it broken into sign words.
+## Current Vocabulary
 
+`hello`, `deaf`, `help`, `water`, `home`, `sick`, `doctor`, `please`, `thank_you`, `yes`, `no`, `sorry`, `welcome`, `wait`, `food`
+
+Both one-handed and two-handed signs are supported.
+
+---
+
+## What's Built
+
+- Real-time two-hand sign recognition (~94% validation accuracy)
+- LLM-powered sentence composition from recognized signs (Forward Mode)
+- LLM-powered sign-word sequencing from typed or spoken sentences (Reverse Mode), displayed as a flashcard sequence
+- Text-to-speech output
+- Speech-to-text input with automatic fallback to typed input
+- Web-based interface for both modes, backed by a FastAPI WebSocket service
+
+## Honest Limitations & Roadmap
+
+- Reverse Mode currently displays each matched sign as a **text flashcard**, not a rendered hand image or animation. Visual hand-sign rendering is the next planned step.
+- The current vocabulary is intentionally focused (15 core words) to keep recognition accuracy high; expanding vocabulary is a natural next step.
+- Motion-based signs (where meaning depends on movement, not just static hand shape) are not yet distinguished from static signs.
+- Community validation with Deaf PSL users and experts is planned to verify sign accuracy going forward.
+
+---
+
+## Demo Script
+
+1. Sign: `HELLO → DEAF → SICK → HELP → DOCTOR`
+2. SignBridge recognizes the sequence live and speaks: *"Hello, I am Deaf and I am sick. I need help, please call a doctor."*
+3. Switch to Reverse Mode. Type: *"I am feeling unwell and need medical attention."*
+4. Click **Convert to Signs**, then **Play sequence** — SignBridge plays `SICK → DOCTOR → HELP → PLEASE` as flashcards.
+
+---
+
+Built by **Malaika Amjad** for the Alibaba Cloud AI Hackathon Pakistan 2026.
