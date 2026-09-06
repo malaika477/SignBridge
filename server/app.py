@@ -25,8 +25,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 # Make src/ importable (for llm_sentence.py)
@@ -47,20 +45,9 @@ app = FastAPI(title="SignBridge API")
 # Thread pool for blocking LLM calls (prevents event loop freeze)
 _executor = ThreadPoolExecutor(max_workers=16)
 
-# --- Config ---
-# In deployment (frontend/dist exists), allow all origins.
-# In local dev, restrict to Vite dev server.
-DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-IS_DEPLOYED = os.path.isdir(DIST_DIR)
-
-CORS_ORIGINS = ["*"] if IS_DEPLOYED else [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -188,23 +175,3 @@ async def websocket_recognize(ws: WebSocket):
             await ws.send_json({"type": "error", "message": str(e)})
         except Exception:
             pass
-
-
-# --- Serve built frontend (deployment mode) ---
-if IS_DEPLOYED:
-    # Mount static assets (JS, CSS, images)
-    app.mount(
-        "/assets",
-        StaticFiles(directory=os.path.join(DIST_DIR, "assets")),
-        name="static-assets",
-    )
-
-    # Catch-all: serve index.html for any non-API route
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        # Try to serve a static file first
-        file_path = os.path.join(DIST_DIR, full_path)
-        if full_path and os.path.isfile(file_path):
-            return FileResponse(file_path)
-        # Fall back to index.html for SPA routing
-        return FileResponse(os.path.join(DIST_DIR, "index.html"))

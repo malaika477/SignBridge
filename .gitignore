@@ -41,9 +41,6 @@ desktop.ini
 # --- Trained models (too large for GitHub) ---
 *.pkl
 
-# --- Debug screenshots ---
-screenshot_*.png
-
 # --- Data (optional - uncomment if CSV is too large) ---
 # data/*.csv
 

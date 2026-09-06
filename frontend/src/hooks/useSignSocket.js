@@ -12,19 +12,7 @@
  */
 import { useRef, useEffect, useState, useCallback } from 'react'
 
-// Auto-detect WebSocket URL based on current page origin
-function getWsUrl() {
-  const { protocol, host } = window.location
-  // In local dev (Vite dev server on 5173), connect to backend on 8001
-  if (host.includes('localhost:5173') || host.includes('127.0.0.1:5173')) {
-    return 'ws://localhost:8001/ws/recognize'
-  }
-  // In deployment, use same host with wss:// (secure WebSocket)
-  const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${wsProtocol}//${host}/ws/recognize`
-}
-
-const WS_URL = getWsUrl()
+const WS_URL = 'ws://localhost:8001/ws/recognize'
 const RECONNECT_DELAY_MS = 3000
 
 export function useSignSocket() {
