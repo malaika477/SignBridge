@@ -146,6 +146,14 @@ Both one-handed and two-handed signs are supported.
 
 ---
 
+## Screenshots
+
+| Sign → Text Mode | Speech/Text → Sign Words Mode |
+|---|---|
+| ![Sign to Text](screenshot_sign_to_text.png) | ![Speech/Text to Sign](screenshot_speech_to_sign.png) |
+
+---
+
 ## Demo Script
 
 1. Sign: `HELLO → DEAF → SICK → HELP → DOCTOR`
