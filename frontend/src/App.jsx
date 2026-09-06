@@ -52,7 +52,7 @@ export default function App() {
             className={`tab-button ${activeTab === 'reverse' ? 'tab-active' : ''}`}
             onClick={() => setActiveTab('reverse')}
           >
-            Text → Sign Words
+            Speech/Text → Sign Words
           </button>
         </div>
       </header>

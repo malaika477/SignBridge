@@ -121,7 +121,7 @@ export default function ReverseMode() {
 
   return (
     <div className="reverse-mode">
-      <h3 className="section-label">Speech → Sign Vocabulary</h3>
+      <h3 className="section-label">Speech/Text → Sign Vocabulary</h3>
       <p className="reverse-hint">
         Type or speak a sentence to see it broken down into the sign vocabulary words
         your classifier recognises — displayed as text labels in sequence.
